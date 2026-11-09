@@ -1,0 +1,6 @@
+{
+  "name":"@was/mobile","version":"0.1.0","private":true,"main":"index.ts",
+  "scripts":{"start":"expo start","android":"expo start --android","typecheck":"tsc --noEmit"},
+  "dependencies":{"@was/game-content":"*","@was/game-core":"*","@was/design-tokens":"*","expo":"~54.0.0","react":"19.1.0","react-native":"0.81.5","@react-native-async-storage/async-storage":"2.2.0","expo-audio":"~1.1.1"},
+  "devDependencies":{"@types/react":"~19.1.10"}
+}

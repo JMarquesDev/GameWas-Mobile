@@ -1,0 +1,14 @@
+import { useEffect, useState } from 'react';
+import { StatusBar, StyleSheet, Text, View, Pressable, ScrollView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { childhoodObjects } from '@was/game-content';
+import { canRecoverMemory, collectClue, initialProgress, parseSave, recoverMemory } from '@was/game-core';
+import { colors } from '@was/design-tokens';
+export default function App() {
+  const [progress, setProgress] = useState(initialProgress);
+  const [ready, setReady] = useState(false);
+  useEffect(() => { let active = true; AsyncStorage.getItem('was:progress:v1').then(raw => { if (active) setProgress(parseSave(raw)); }).catch(() => {}).finally(() => { if (active) setReady(true); }); return () => { active = false; }; }, []);
+  useEffect(() => { if (ready) void AsyncStorage.setItem('was:progress:v1', JSON.stringify(progress)).catch(() => {}); }, [progress, ready]);
+  return <ScrollView contentContainerStyle={styles.page}><StatusBar barStyle="light-content"/><Text style={styles.brand}>WAS</Text><Text style={styles.subtitle}>MEMÓRIAS DE OLIVER · MOBILE LIGHT</Text><Text style={styles.title}>O quarto da infância</Text><Text style={styles.body}>Base de investigação por toque. Encontre as três pistas para reconstruir uma memória.</Text><Text style={styles.subtitle}>{progress.clues.length} / 3 PISTAS</Text>{childhoodObjects.map(object => <Pressable accessibilityRole="button" disabled={!ready} key={object.id} style={styles.card} onPress={() => setProgress(current => collectClue(current, object.id))}><Text style={styles.cardTitle}>{object.name} {progress.clues.includes(object.id) ? '✓' : '→'}</Text>{progress.clues.includes(object.id) && <Text style={styles.body}>{object.text}</Text>}</Pressable>)}<Pressable accessibilityRole="button" disabled={!ready || !canRecoverMemory(progress)} style={[styles.button, !canRecoverMemory(progress) && { opacity: 0.4 }]} onPress={() => setProgress(recoverMemory)}><Text>Recuperar memória</Text></Pressable>{progress.memoryRecovered && <View><Text style={styles.title}>● ○ ○ ○ ○ ○ ○</Text><Text style={styles.body}>Primeira memória recuperada.</Text></View>}<Text style={styles.body}>Protótipo estrutural. Cenário, animações e controles laterais mobile serão implementados na próxima etapa.</Text></ScrollView>;
+}
+const styles = StyleSheet.create({page:{flexGrow:1,padding:28,paddingTop:64,backgroundColor:colors.background,gap:18},brand:{fontSize:48,letterSpacing:10,color:colors.text},subtitle:{fontSize:11,letterSpacing:2,color:colors.accent},title:{fontSize:26,color:colors.text},body:{fontSize:15,lineHeight:24,color:colors.muted},card:{padding:20,backgroundColor:colors.panel,borderRadius:8,gap:12},cardTitle:{fontSize:18,color:colors.text},button:{padding:18,backgroundColor:colors.accent,borderRadius:6,alignItems:'center'}});

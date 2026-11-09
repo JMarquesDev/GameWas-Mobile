@@ -1,0 +1,10 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { App } from './pages/App';
+import { ModelPrototypePreview } from './pages/ModelPrototypePreview';
+import './ui/styles.css';
+import './ui/menu.css';
+import './ui/inspection.css';
+import './ui/prototype.css';
+const showModelPreview = new URLSearchParams(window.location.search).has('preview-modelos-3d');
+ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode>{showModelPreview ? <ModelPrototypePreview/> : <App />}</React.StrictMode>);

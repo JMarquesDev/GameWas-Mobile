@@ -1,0 +1,14 @@
+node_modules/
+.npm-cache/
+dist/
+.expo/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.log
+
+tools/.video-deps/
+__pycache__/
+.tools/

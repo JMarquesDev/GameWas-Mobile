@@ -1,0 +1,21 @@
+.field-finale{position:absolute;inset:0;background:#000;overflow:hidden}
+.field-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;opacity:0}
+.field-ready .field-art{animation:field-reveal 4s ease-in-out forwards;animation-play-state:inherit}
+.field-pause{position:absolute;top:24px;right:28px;background:#10171999;color:#fff;border-color:#ffffff55;z-index:2;font-size:12px}
+.field-caption{position:absolute;bottom:5%;left:50%;transform:translateX(-50%);width:min(760px,88vw);text-align:center;color:#fff8e7;padding:22px 28px;background:linear-gradient(90deg,transparent,#101719d9 15%,#101719d9 85%,transparent);animation:field-reveal .9s ease both}
+.field-caption p{font:clamp(18px,2vw,27px)/1.6 Georgia,serif;margin:0;text-shadow:0 2px 4px #000}
+.field-caption small{display:block;margin-top:10px;color:#eee4cf}
+.field-complete{position:absolute;bottom:6%;width:100%;text-align:center;animation:field-reveal 1s ease both}
+.field-complete button{background:#101719cc;color:#fff5df}
+.field-loading{position:absolute;inset:45% 10% auto;text-align:center;color:#e8ddc5}
+.large-text .field-caption p{font-size:clamp(23px,2.5vw,32px)}
+@keyframes field-reveal{from{opacity:0}to{opacity:1}}
+.reduced-motion .field-ready .field-art{opacity:1;animation:none}
+@media(prefers-reduced-motion:reduce){.field-ready .field-art{opacity:1;animation:none}}
+@media(max-width:600px){.field-caption{bottom:9%;padding:15px}.field-pause{top:12px;right:12px}}
+dialog.ending-white{inset:0;margin:auto;width:100vw;height:100dvh;max-width:none;max-height:none;border:0;border-radius:0;background:#fff;color:#1b2422;display:flex;align-items:center;justify-content:center;text-align:center}
+dialog.ending-white::backdrop{background:#fff}
+.ending-white-content{display:grid;gap:22px;justify-items:center;font:clamp(20px,3vw,32px) Georgia,serif}
+.ending-white-content .secondary{color:#1b2422;border-color:#65716b}
+
+.field-final-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:field-video-enter 2.2s ease-in both}.field-finale:has(.field-final-video) .field-pause{z-index:3}@keyframes field-video-enter{from{opacity:0}to{opacity:1}}@media(prefers-reduced-motion:reduce){.field-final-video{animation:none}}

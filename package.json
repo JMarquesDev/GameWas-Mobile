@@ -1,0 +1,26 @@
+{
+  "name": "was",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @was/web",
+    "mobile": "vite apps/web --host 0.0.0.0 --port 5174",
+    "build": "npm run build --workspace @was/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "overrides": {
+    "vite": "6.4.4"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}
