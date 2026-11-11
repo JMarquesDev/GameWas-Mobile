@@ -15,4 +15,8 @@ describe('continuidade da exploração', () => {
     expect(session.positions.missing).toBeUndefined();
     expect(session.memoryWatched).toBe(true);
   });
+  it('retoma um save do laboratório removido no laboratório da fase 3', () => {
+    const session = parseSession(JSON.stringify({ version: 1, scene: 'faculdade-laboratorio', savedAt: 123, positions: {}, memoryWatched: true }));
+    expect(session.scene).toBe('cenario-02');
+  });
 });

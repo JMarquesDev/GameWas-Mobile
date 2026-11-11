@@ -78,12 +78,13 @@ function ChairModel() {
   </group>;
 }
 
-function EssayModel() {
+export function EssayModel() {
   const page = EssayTexture();
   return <group rotation={[-.42, 0, -.09]}>
     <mesh castShadow receiveShadow><boxGeometry args={[1.65, 2.2, .045]}/><meshStandardMaterial color="#b5a587" roughness={1}/></mesh>
     <mesh position={[0, 0, .027]}><planeGeometry args={[1.59, 2.14]}/><meshStandardMaterial map={page} roughness={.97}/></mesh>
     <mesh position={[0, .65, .053]} castShadow><boxGeometry args={[.22, .12, .025]}/><meshStandardMaterial color="#ad7853" metalness={.45} roughness={.5}/></mesh>
+    <mesh position={[0, -1.08, .032]}><boxGeometry args={[1.58, .025, .04]}/><meshStandardMaterial color="#b9a984" roughness={1}/></mesh>
   </group>;
 }
 

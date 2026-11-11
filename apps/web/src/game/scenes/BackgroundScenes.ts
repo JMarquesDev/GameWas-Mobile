@@ -7,6 +7,7 @@ import { addForeground } from '../systems/foreground';
 import { phaseObjectives } from '@was/game-content';
 import { useGameStore } from '../store';
 import { gameAudio } from '../audio';
+import { canCompletePhase } from '@was/game-core';
 import type { Point } from '../systems/navigation';
 
 class BackgroundScene extends Phaser.Scene {
@@ -15,6 +16,9 @@ class BackgroundScene extends Phaser.Scene {
   private markers: Phaser.GameObjects.Arc[] = [];
   private shownContexts = new Set<string>();
   private interactKey!: Phaser.Input.Keyboard.Key;
+  private classroomDoorHint?: Phaser.GameObjects.Text;
+  private enteringClassroom = false;
+  private enterClassroom?: () => void;
   private objective: (typeof phaseObjectives)[number] | undefined;
   constructor(key: string, private file: string) { super(key); }
   preload() { this.load.image(this.sys.settings.key, `/assets/backgrounds/${this.file}`); preloadOliver(this); }
@@ -45,7 +49,30 @@ class BackgroundScene extends Phaser.Scene {
       return marker;
     }) ?? [];
     this.prompt = this.add.text(0, 0, '', { fontSize: '12px', color: '#fff4dd', backgroundColor: '#191c1be8', padding: { x: 9, y: 6 } }).setOrigin(.5, 1).setDepth(2000).setResolution(2);
+    if (key === 'infancia-corredor') {
+      this.classroomDoorHint = this.add.text(2705, 445 * height / 540, 'Entrar na sala de aula', { fontSize: '13px', color: '#fff4dd', backgroundColor: '#191c1be8', padding: { x: 9, y: 6 } }).setOrigin(.5, 1).setDepth(2000).setResolution(2).setVisible(false);
+      this.enterClassroom = () => {
+        const state = useGameStore.getState();
+        if (state.paused || this.enteringClassroom) return;
+        if (!canCompletePhase(state.progress, key)) { state.notify('Observe as lembranças do corredor antes de entrar na sala.'); return; }
+        const position = this.exploration.position;
+        if (Math.hypot(position.x - 2715, position.y - 475) > 100) {
+          state.notify('Aproxime-se da porta da sala de aula.');
+          return;
+        }
+        this.enteringClassroom = true;
+        this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => window.dispatchEvent(new Event('was:classroom-door')));
+        this.cameras.main.fadeOut(usePreferences.getState().reducedMotion ? 0 : 900, 0, 0, 0);
+      };
+      this.add.zone(2705, 280 * height / 540, 180, 350 * height / 540).setDepth(1500).setInteractive({ useHandCursor: true }).on('pointerdown', this.enterClassroom);
+    }
     this.interactKey = this.input.keyboard!.addKey('E');
+    const touchInteract = () => {
+      const position = this.exploration.position;
+      if (key === 'infancia-corredor' && canCompletePhase(useGameStore.getState().progress, key) && Math.hypot(position.x - 2715, position.y - 475) <= 100) this.enterClassroom?.();
+      else this.interact();
+    }; window.addEventListener('was:interact', touchInteract);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { window.removeEventListener('was:interact', touchInteract); });
     if (!usePreferences.getState().reducedMotion) this.cameras.main.fadeIn(650, 16, 23, 25);
     this.game.events.emit('was:scene-ready');
   }
@@ -55,6 +82,8 @@ class BackgroundScene extends Phaser.Scene {
     if (!this.objective) return;
     const foot = this.exploration.position;
     const state = useGameStore.getState();
+    this.classroomDoorHint?.setVisible(!paused && !this.enteringClassroom && canCompletePhase(state.progress, this.sys.settings.key));
+    this.classroomDoorHint?.setText('Entrar na sala de aula · toque');
     if (!paused && !state.notice) {
       const context = this.objective.clues.filter(clue => clue.presentation === 'context' && !this.shownContexts.has(clue.id)).map(clue => {
         const point = clue.approach ?? clue;
@@ -69,11 +98,7 @@ class BackgroundScene extends Phaser.Scene {
     const interactiveClues = this.objective.clues.filter(clue => clue.presentation !== 'context');
     const nearest = interactiveClues.map(clue => { const point = clue.approach ?? clue; return { clue, distance: Math.hypot(point.x - foot.x, point.y - foot.y) }; }).filter(item => item.distance < 92).sort((a, b) => a.distance - b.distance)[0]?.clue;
     this.prompt.setVisible(!paused && !!nearest);
-    if (nearest) {
-      const action = useGameStore.getState().progress.phaseClues[this.sys.settings.key]?.includes(nearest.id) ? 'Rever' : 'Investigar';
-      const instruction = window.matchMedia('(pointer: coarse)').matches ? `Toque para ${action.toLowerCase()}` : `${action} · E`;
-      this.prompt.setPosition(nearest.x, nearest.y * sceneSize(this.sys.settings.key).height / 540 - 22).setText(`${instruction}: ${nearest.title}`);
-    }
+    if (nearest) this.prompt.setPosition(nearest.x, nearest.y * sceneSize(this.sys.settings.key).height / 540 - 22).setText(`${useGameStore.getState().progress.phaseClues[this.sys.settings.key]?.includes(nearest.id) ? 'Rever' : 'Investigar'}: ${nearest.title} · toque`);
     interactiveClues.forEach((clue, index) => {
       const found = useGameStore.getState().progress.phaseClues[this.sys.settings.key]?.includes(clue.id) ?? false;
       const active = nearest?.id === clue.id && !paused;
@@ -92,19 +117,25 @@ class BackgroundScene extends Phaser.Scene {
     const approach = target?.approach ?? target;
     if (!target || !approach || Math.hypot(approach.x - position.x, approach.y - position.y) > 100) { useGameStore.getState().notify('Aproxime-se de um detalhe para investigar.'); return; }
     if (target.id === 'prova-anatomia' && useGameStore.getState().progress.choices['school-phone'] !== 'unlocked') { useGameStore.getState().notify('As mensagens do celular indicam o armário de Zoe.'); return; }
+    if (key === 'infancia-sala' && target.id === 'cadeira-oz') { window.dispatchEvent(new Event('was:chair-mark')); return; }
+    if (key === 'infancia-sala' && target.id === 'nomes-armarios') { window.dispatchEvent(new Event('was:classroom-cubbies')); return; }
+    if (key === 'infancia-sala' && target.id === 'trabalho-infantil') { window.dispatchEvent(new Event('was:school-work')); return; }
+    if (key === 'cenario-02' && target.id === 'bolsa-caderno') { window.dispatchEvent(new Event('was:school-notebook')); return; }
     if (target.id === 'celular-antigo') window.dispatchEvent(new Event('was:school-phone'));
     if (!useGameStore.getState().progress.phaseClues[key]?.includes(target.id)) { useGameStore.getState().collectPhaseClue(key, target.id); useGameStore.getState().notify(`${target.title}: ${target.text}`); gameAudio.cue('clue'); }
-    else useGameStore.getState().notify(target.text);
+    else {
+      const found = useGameStore.getState().progress.phaseClues[key]?.length ?? 0;
+      useGameStore.getState().notify(`${target.title} já registrado (${found}/${objective.clues.length}). ${target.text}`);
+    }
   }
 }
 export class CorredorInfanciaScene extends BackgroundScene { constructor() { super('infancia-corredor', 'corredor-tres-trechos.png'); } }
 export class SalaInfanciaScene extends BackgroundScene { constructor() { super('infancia-sala', 'infancia-sala-aula-v2.png'); } }
-export class LaboratorioAulaScene extends BackgroundScene { constructor() { super('cenario-02', 'cena-02-laboratorio-aula-v2.png'); } }
-export class LaboratorioFaculdadeScene extends BackgroundScene { constructor() { super('faculdade-laboratorio', 'cena-03-laboratorio-faculdade-v1.png'); } }
+export class LaboratorioAulaScene extends BackgroundScene { constructor() { super('cenario-02', 'cena-02-laboratorio-quadro-v3.png'); } }
 export class SalaEstarScene extends BackgroundScene { constructor() { super('cenario-03', 'cena-03-sala-estar-v2.png'); } }
 export class ParedeQuadrosScene extends BackgroundScene { constructor() { super('cenario-04', 'cena-04-parede-quadros-v2.png'); } }
 export class CozinhaScene extends BackgroundScene { constructor() { super('cenario-05', 'cena-05-cozinha-v3.jpg'); } }
 export class LaboratorioPaiScene extends BackgroundScene { constructor() { super('cenario-06', 'cena-06-laboratorio-pai-v3.jpg'); } }
 export class HospitalBackgroundScene extends BackgroundScene { constructor() { super('cenario-07', 'cena-07-hospital-v2.png'); } }
 export class CampoBackgroundScene extends BackgroundScene { constructor() { super('cenario-08', 'cena-08-campo-v2.png'); } }
-export const backgroundScenes = [CorredorInfanciaScene, SalaInfanciaScene, LaboratorioAulaScene, LaboratorioFaculdadeScene, SalaEstarScene, ParedeQuadrosScene, CozinhaScene, LaboratorioPaiScene, HospitalBackgroundScene, CampoBackgroundScene];
+export const backgroundScenes = [CorredorInfanciaScene, SalaInfanciaScene, LaboratorioAulaScene, SalaEstarScene, ParedeQuadrosScene, CozinhaScene, LaboratorioPaiScene, HospitalBackgroundScene, CampoBackgroundScene];

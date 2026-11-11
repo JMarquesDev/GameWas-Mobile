@@ -3,7 +3,7 @@ import { usePreferences } from '../game/preferences';
 
 const tracks: Record<string, string> = {
   menu: 'menu', infancia: 'infancia', 'infancia-corredor': 'infancia', 'infancia-sala': 'infancia',
-  'cenario-02': 'adolescencia', 'faculdade-laboratorio': 'faculdade',
+  'cenario-02': 'faculdade',
   'cenario-03': 'apartamento', 'cenario-04': 'apartamento', 'cenario-05': 'apartamento',
   'cenario-06': 'laboratorio_pai', 'cenario-07': 'hospital', 'cenario-08': 'campo',
   flashbacks_final: 'flashbacks_final',

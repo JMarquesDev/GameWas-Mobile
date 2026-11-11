@@ -11,20 +11,9 @@
 
 .game-intro video{pointer-events:none}.game-intro .intro-play{right:50%;bottom:50%;transform:translate(50%,50%)}.game-intro>p{position:absolute;inset:45% 15% auto;text-align:center;color:#fff}
 
-@media (pointer: coarse) {
-  .main-menu { background: #101917; padding: 16px max(20px, env(safe-area-inset-right)) 36px max(20px, env(safe-area-inset-left)); }
-  .menu-landscape { position: fixed; inset: 0; height: 100dvh; overflow: hidden; }
-  .menu-landscape::before { content: ''; position: absolute; inset: -16px; background: url('/assets/menu/campo-chuva-v1.png') center / cover; filter: blur(14px) brightness(.6); }
-  .menu-completed .menu-landscape::before { background-image: url('/assets/menu/campo-luz-v1.png'); }
-  .menu-landscape img { position: relative; object-fit: contain; object-position: center; }
-  .menu-completed .menu-landscape img { object-fit: cover; object-position: center 58%; }
-  .menu-content h1 { font-size: clamp(38px, 8dvh, 64px); margin: 6px 0; }
-  .menu-rule { margin-block: 10px; }
-  .menu-buttons { gap: 2px; }
-  .menu-buttons button { min-height: 44px; padding-block: 6px; }
-  .menu-caption { margin: 10px 0 4px; }
-}
+.main-menu>button.menu-edition{width:auto;left:50%;right:auto;transform:translateX(-50%);background:transparent;border:0;padding:8px;pointer-events:auto;white-space:nowrap}
+.main-menu>button.menu-edition:hover:not(:disabled){background:transparent;color:#6f7b70}
+.main-menu>button.menu-admin-revealed{font-size:10px;letter-spacing:1px;color:#a0a797}
+.main-menu>button.menu-admin-revealed:hover:not(:disabled){color:#a0a797}
+
 .menu-platform{display:block;margin-top:12px;color:#d1bb91;font:600 11px/1 Arial,sans-serif;letter-spacing:4px;text-transform:uppercase}
-.admin-trigger{display:block;width:max-content;max-width:100%;margin:30px auto 18px;padding:8px 4px;border:0;background:transparent;color:#939b91;font:italic 13px Georgia;letter-spacing:normal;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-.admin-trigger:hover:not(:disabled){background:transparent;color:#c5c1b5}
-.main-menu:has(.preferences){overflow-y:auto;overscroll-behavior:contain;}

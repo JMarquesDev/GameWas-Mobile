@@ -7,7 +7,12 @@ export type SaveSlot = { id: number; occupied: boolean; progress: number; phase:
 const slotCount = 3;
 const progressKey = (slot: number) => `was:slot:${slot}:progress:v1`;
 const sessionKey = (slot: number) => `was:slot:${slot}:session:v1`;
-function readSlot(slot: number) { try { return { progress: parseSave(localStorage.getItem(progressKey(slot))), session: parseSession(localStorage.getItem(sessionKey(slot))) }; } catch { return { progress: initialProgress(), session: freshSession() }; } }
+function readSlot(slot: number) { try {
+  const progress = parseSave(localStorage.getItem(progressKey(slot)));
+  const session = parseSession(localStorage.getItem(sessionKey(slot)));
+  if (session.savedAt > 0 && ['infancia-corredor', 'infancia-sala'].includes(session.scene)) progress.unlockedPhase = Math.max(1, progress.unlockedPhase);
+  return { progress, session };
+} catch { return { progress: initialProgress(), session: freshSession() }; } }
 function writeSlot(slot: number, progress: Progress, session: Session) { try { localStorage.setItem(progressKey(slot), JSON.stringify(progress)); localStorage.setItem(sessionKey(slot), JSON.stringify(session)); return true; } catch { return false; } }
 function summaries(): SaveSlot[] { return Array.from({ length: slotCount }, (_, id) => { const { progress, session } = readSlot(id); const occupied = session.savedAt > 0 || progress.clues.length > 0 || progress.unlockedPhase > 0; return { id, occupied, progress: occupied ? Math.round(progress.unlockedPhase / 6 * 100) : 0, phase: progress.unlockedPhase, savedAt: session.savedAt }; }); }
 function migrateLegacy() {

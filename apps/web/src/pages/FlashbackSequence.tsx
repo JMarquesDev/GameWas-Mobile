@@ -10,9 +10,11 @@ const boards: Partial<Record<FlashbackKind, Board>> = {
   school: { file: '03-redacao', columns: 4, rows: 2, frames: [0, 2, 3, 7] },
   friend: { file: '04-michael', columns: 2, rows: 4, frames: [0, 2, 4, 7] },
   relationship: { file: '05-zoe', columns: 2, rows: 4, frames: [0, 2, 3, 6] },
+  photos: { file: '05-zoe', columns: 2, rows: 4, frames: [1, 3, 5, 7] },
   apartment: { file: '05-zoe', columns: 2, rows: 4, frames: [7, 2, 4, 7] },
   father: { file: '06-santiago', columns: 3, rows: 4, frames: [2, 4, 7, 9] },
   hospital: { file: '07-hospital', columns: 3, rows: 3, frames: [0, 1, 2, 8] },
+  field: { file: '08-campo', columns: 3, rows: 3, frames: [0, 2, 4, 8] },
 };
 
 function Panel({ board, frame }: { board: Board; frame: number }) {

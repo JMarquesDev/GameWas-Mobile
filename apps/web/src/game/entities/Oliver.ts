@@ -5,8 +5,8 @@ import { breathScale, facingForMovement, type Facing } from './oliverMotion';
 // Casual idle and walking frames share the same source height.
 const casualScale = 0.30;
 const strideKey = 'oliver-casual-walk-original';
-// Sheet frames are 1024px tall; the separate lateral idle image is 1774px tall.
-// Keep their rendered heights equal so facing/walking cannot resize Oliver.
+// O idle lateral é uma arte alta separada; os demais sprites são folhas de 1024px.
+// Escalas equivalentes evitam que Oliver mude de tamanho ao andar/virar.
 const medicalFrameScale = 0.30;
 const medicalSideScale = 0.165;
 

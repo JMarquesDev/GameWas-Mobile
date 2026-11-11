@@ -7,13 +7,15 @@ import { Exploration } from '../systems/Exploration';
 import { usePreferences } from '../preferences';
 import { backgrounds, sceneSize } from '../backgrounds';
 import { gameAudio } from '../audio';
-import { isWalkable } from '../systems/navigation';
 import { addForeground } from '../systems/foreground';
 export class InfanciaScene extends Phaser.Scene {
   private exploration!: Exploration;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private prompt!: Phaser.GameObjects.Text;
   private destinationMarker!: Phaser.GameObjects.Arc;
+  private doorHint!: Phaser.GameObjects.Text;
+  private leavingRoom = false;
+  private exitDoor?: () => void;
   private markers = new Map<ObjectId, Phaser.GameObjects.Arc>();
   constructor() { super('infancia'); }
   preload() { preloadOliver(this); this.load.image('infancia-quarto', `/assets/backgrounds/${backgrounds[0].file}`); }
@@ -48,7 +50,6 @@ export class InfanciaScene extends Phaser.Scene {
     [
       { x: 125, y: 200, approach: { x: 170, y: 490 }, text: 'A luz da janela atravessa o quarto. Por um instante, tudo parece familiar.' },
       { x: 350, y: 260, approach: { x: 340, y: 385 }, text: 'Um abajur antigo ao lado da cama. O quarto parece ter esperado por alguém.' },
-      { x: 860, y: 330, approach: { x: 840, y: 495 }, text: 'Ainda há lembranças para reconstruir neste quarto. Investigue os objetos e reúna as pistas no diário.' },
     ].forEach(detail => {
       const spot = this.add.circle(detail.x, detail.y * height / 540, 18, 0xffe8b3, 0).setDepth(1000).setInteractive({ useHandCursor: true });
       spot.on('pointerover', () => spot.setStrokeStyle(1, 0xffe8b3, .55));
@@ -62,28 +63,29 @@ export class InfanciaScene extends Phaser.Scene {
     addForeground(this, 'infancia', 'infancia-quarto');
     this.prompt = this.add.text(0, 0, '', { fontSize: '12px', align: 'center', color: '#fff4dd', backgroundColor: '#191c1be8', padding: { x: 9, y: 6 } }).setOrigin(.5, 1).setDepth(2000).setResolution(2);
     this.exploration = new Exploration(this, 'infancia');
-    this.destinationMarker = this.add.circle(0, 0, 8, 0xf5dfb6, .1).setStrokeStyle(1, 0xf5dfb6, .65).setDepth(0).setVisible(false);
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer, objects: Phaser.GameObjects.GameObject[]) => {
-      if (objects.length || useGameStore.getState().paused || document.querySelector('dialog[open]')) return;
-      // On touch screens, ground taps should not start a separate point-to-point
-      // gait. Keep movement consistent with the mobile joystick; object taps above
-      // still investigate their markers normally.
-      if (pointer.wasTouch || window.matchMedia('(pointer: coarse)').matches) return;
-      const world = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
-      const point = { x: world.x, y: world.y * 540 / height };
-      if (isWalkable('infancia', point)) this.exploration.walkTo(point);
-    });
-    this.interactKey = this.input.keyboard!.addKey('E');
-    const exitThroughDoor = () => {
-      if (!useGameStore.getState().progress.memoryRecovered) return;
-      const reached = this.exploration.walkTo({ x: 875, y: 515 }, () => {
-        this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => window.dispatchEvent(new Event('was:door-flashback')));
-        this.cameras.main.fadeOut(usePreferences.getState().reducedMotion ? 0 : 900, 0, 0, 0);
-      });
-      if (!reached) useGameStore.getState().notify('A porta está bloqueada. Aproxime-se pelo piso livre.');
+    const doorApproach = { x: 875, y: 515 };
+    this.doorHint = this.add.text(905, 440 * height / 540, 'Sair pela porta', { fontSize: '13px', color: '#fff4dd', backgroundColor: '#191c1be8', padding: { x: 9, y: 6 } }).setOrigin(.5, 1).setDepth(2000).setResolution(2).setVisible(false);
+    this.exitDoor = () => {
+      const state = useGameStore.getState();
+      if (!state.session.memoryWatched || !state.progress.memoryRecovered || state.paused || this.leavingRoom) return;
+      const position = this.exploration.position;
+      if (Math.hypot(position.x - doorApproach.x, position.y - doorApproach.y) > 80) {
+        state.notify('Aproxime-se da porta para sair.');
+        return;
+      }
+      this.leavingRoom = true;
+      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => window.dispatchEvent(new Event('was:door-flashback')));
+      this.cameras.main.fadeOut(usePreferences.getState().reducedMotion ? 0 : 900, 0, 0, 0);
     };
-    window.addEventListener('was:exit-door', exitThroughDoor);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { window.removeEventListener('was:exit-door', exitThroughDoor); });
+    this.add.zone(915, 285 * height / 540, 90, 330 * height / 540).setDepth(1500).setInteractive({ useHandCursor: true }).on('pointerdown', this.exitDoor);
+    this.destinationMarker = this.add.circle(0, 0, 8, 0xf5dfb6, .1).setStrokeStyle(1, 0xf5dfb6, .65).setDepth(0).setVisible(false);
+    this.interactKey = this.input.keyboard!.addKey('E');
+    const touchInteract = () => {
+      const position = this.exploration.position;
+      if (useGameStore.getState().session.memoryWatched && Math.hypot(position.x - doorApproach.x, position.y - doorApproach.y) <= 80) this.exitDoor?.();
+      else this.interact();
+    }; window.addEventListener('was:interact', touchInteract);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { window.removeEventListener('was:interact', touchInteract); });
     if (!usePreferences.getState().reducedMotion) this.cameras.main.fadeIn(650, 8, 12, 13);
     this.game.events.emit('was:scene-ready');
   }
@@ -91,6 +93,8 @@ export class InfanciaScene extends Phaser.Scene {
     const state = useGameStore.getState();
     const paused = state.paused || !!state.inspecting || document.hidden || !!document.querySelector('dialog[open]');
     this.exploration.update(delta, paused);
+    this.doorHint.setVisible(!paused && state.session.memoryWatched && state.progress.memoryRecovered && !this.leavingRoom);
+    this.doorHint.setText('Sair pela porta · toque');
     const destination = this.exploration.destination;
     this.destinationMarker.setVisible(!paused && !!destination);
     if (destination) this.destinationMarker.setPosition(destination.x, destination.y * sceneSize('infancia').height / 540);
@@ -98,8 +102,7 @@ export class InfanciaScene extends Phaser.Scene {
     this.prompt.setVisible(!paused && !!nearest);
     if (nearest) {
       this.prompt.setPosition(nearest.x, nearest.y * sceneSize('infancia').height / 540 - 20);
-      const action = state.progress.clues.includes(nearest.id) ? 'reexaminar' : 'investigar';
-      this.prompt.setText(window.matchMedia('(pointer: coarse)').matches ? `Toque para ${action}` : `Investigar · E`);
+      this.prompt.setText(`${state.progress.clues.includes(nearest.id) ? 'Reexaminar' : 'Investigar'} · toque`);
     }
     this.markers.forEach((marker, id) => {
       const active = nearest?.id === id && !paused;

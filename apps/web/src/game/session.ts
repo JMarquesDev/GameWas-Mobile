@@ -7,7 +7,7 @@ export function parseSession(raw: string | null): Session {
   try {
     const data = JSON.parse(raw ?? 'null');
     if (!data || data.version !== 1) return freshSession();
-    const scene = backgrounds.some(item => item.key === data.scene) ? data.scene : 'infancia';
+    const scene = data.scene === 'faculdade-laboratorio' ? 'cenario-02' : backgrounds.some(item => item.key === data.scene) ? data.scene : 'infancia';
     const positions: Record<string, Point> = {};
     for (const item of backgrounds) {
       const point = data.positions?.[item.key];

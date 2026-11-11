@@ -15,9 +15,28 @@ describe('exploraÃ§Ã£o do piso', () => {
     expect(end.y).toBeLessThan(340);
     expect(isWalkable('cenario-02', end)).toBe(true);
   });
+  it('permite andar pelo corredor até a frente do quadro', () => {
+    expect(isWalkable('cenario-02', { x: 925, y: 440 })).toBe(true);
+    expect(isWalkable('cenario-02', { x: 800, y: 440 })).toBe(false);
+    const alongBottom = moveOnFloor('cenario-02', { x: 842, y: 523 }, 83, 0);
+    const towardBoard = moveOnFloor('cenario-02', alongBottom, 0, -83);
+    expect(towardBoard.x).toBeGreaterThan(910);
+    expect(towardBoard.y).toBeLessThan(450);
+  });
+  it('mantém Oliver fora dos tampos e da mochila do laboratório', () => {
+    for (const point of [{ x: 570, y: 330 }, { x: 580, y: 355 }, { x: 350, y: 340 }]) {
+      expect(isWalkable('cenario-02', point), JSON.stringify(point)).toBe(false);
+    }
+    for (const point of [{ x: 478, y: 340 }, { x: 570, y: 522 }, { x: 842, y: 523 }]) {
+      expect(isWalkable('cenario-02', point), JSON.stringify(point)).toBe(true);
+    }
+    const end = moveOnFloor('cenario-02', { x: 478, y: 518 }, 130, -195);
+    expect(isWalkable('cenario-02', end)).toBe(true);
+    expect(end.x).toBeLessThan(505);
+  });
   it('bloqueia livros, mochila e paredes sem atravessar em passos longos', () => {
     expect(isWalkable('infancia', { x: 400, y: 440 })).toBe(false);
-    expect(isWalkable('infancia', { x: 590, y: 480 })).toBe(false);
+    expect(isWalkable('infancia', { x: 400, y: 440 })).toBe(false);
     const end = moveOnFloor('infancia', { x: 400, y: 523 }, 0, -180);
     expect(end.y).toBeGreaterThanOrEqual(469);
     expect(end.y).toBeGreaterThanOrEqual(490);
@@ -117,6 +136,6 @@ describe('caminhada por clique no quarto', () => {
   });
   it('recusa destinos na parede e na mochila', () => {
     expect(findWalkPath('infancia', floors.infancia.spawn, { x: 400, y: 200 })).toEqual([]);
-    expect(findWalkPath('infancia', floors.infancia.spawn, { x: 590, y: 480 })).toEqual([]);
+    expect(findWalkPath('infancia', floors.infancia.spawn, { x: 400, y: 440 })).toEqual([]);
   });
 });

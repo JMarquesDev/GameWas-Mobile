@@ -29,14 +29,15 @@ export const floors: Record<string, Floor> = {
     spawn: { x: 480, y: 490 }, farY: 305,
   },
   'cenario-02': {
-    polygon: [[18, 365], [125, 332], [420, 318], [565, 318], [825, 350], [940, 390], [940, 540], [18, 540]],
-    obstacles: [box(55, 345, 451, 515), box(505, 345, 905, 515), box(123, 290, 395, 347), box(600, 290, 823, 347)],
+    polygon: [[18, 365], [125, 332], [420, 318], [565, 318], [825, 350], [960, 410], [960, 540], [18, 540]],
+    obstacles: [
+      // Os tampos começam antes das frentes das bancadas na ilustração.
+      box(55, 333, 451, 515), box(505, 333, 835, 515),
+      // A mochila avança sobre o corredor entre as bancadas.
+      { polygon: [[542, 315], [599, 315], [628, 335], [631, 377], [607, 409], [542, 409]], depth: 409 },
+      box(123, 290, 395, 347), box(600, 290, 823, 347),
+    ],
     spawn: { x: 478, y: 518 }, farY: 310,
-  },
-  'faculdade-laboratorio': {
-    polygon: [[0, 470], [210, 400], [330, 400], [790, 400], [960, 470], [960, 532], [0, 532]],
-    obstacles: [box(350, 365, 755, 460), box(115, 380, 250, 480)],
-    spawn: { x: 300, y: 500 }, farY: 390,
   },
   'cenario-03': {
     polygon: [[55, 520], [348, 336], [640, 336], [760, 470], [923, 525], [923, 532], [55, 532]],
@@ -103,6 +104,7 @@ export function moveOnFloor(key: string, position: Point, dx: number, dy: number
 }
 export function perspective(key: string, y: number): number {
   const far = (floors[key] ?? floors.infancia).farY;
+  // Limita a perspectiva para Oliver não encolher demais no fundo da sala.
   if (key === 'infancia-sala') return 0.90 + 0.10 * Math.max(0, Math.min(1, (y - 300) / 230));
   return 0.94 + 0.06 * Math.max(0, Math.min(1, (y - far) / (530 - far)));
 }

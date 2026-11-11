@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace @was/web",
-    "mobile": "vite apps/web --host 0.0.0.0 --port 5174",
+    "mobile": "vite apps/web --host 0.0.0.0 --port 5175 --strictPort",
     "build": "npm run build --workspace @was/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run"
@@ -24,3 +24,4 @@
     "node": ">=22.13.0"
   }
 }
+

@@ -16,7 +16,7 @@ function Inspection({ id }: { id: ObjectId }) {
     <aside className="inspection-notes"><p className="eyebrow">INVESTIGAÇÃO</p>
       {discovered ? <section className="discovered-clue" aria-live="polite"><h3>{object.clue}</h3><p>{object.text}</p><small>Pista registrada no diário.</small></section> : <><h3>Examine o objeto</h3><p>Gire e aproxime para encontrar um detalhe.</p><button disabled={!ready} onClick={() => { if (ready) { state.collect(id); gameAudio.cue('clue'); } }}>Examinar detalhe</button><p className="inspection-help" role="status">{ready ? 'Detalhe à vista. Examine para registrar.' : 'Gire para encontrar o detalhe.'}</p></>}
       <button className="text-button" aria-expanded={hint} onClick={() => setHint(value => !value)}>{hint ? 'Ocultar pista' : 'Preciso de uma pista'}</button>{hint && <p className="inspection-hint">{object.hint}</p>}
-      <small>Esc fecha · progresso salvo.</small>
+      <small>Esc ou ○ fecha a inspeção e devolve o movimento a Oliver · progresso salvo.</small>
     </aside></div>
   </>;
 }

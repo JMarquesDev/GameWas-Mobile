@@ -12,9 +12,7 @@
 .memory-strip .current-frame{flex:3}
 .memory-strip .past-frame{flex:1;align-self:end;height:75%}
 .memory-strip .past-frame:nth-child(2){height:88%}
-.drawing-piece{display:block;width:100%;height:clamp(42px,8vh,70px);margin:auto;background-image:url('/assets/inspection/brain-pencil-v1.png');background-size:100% 300%;background-repeat:no-repeat;filter:drop-shadow(0 2px 2px #0006)}
-.drawing-piece.piece-0{clip-path:polygon(0 0,100% 0,100% 78%,62% 78%,62% 89%,56% 89%,56% 100%,44% 100%,44% 89%,38% 89%,38% 78%,0 78%)}
-.drawing-piece.piece-1{clip-path:polygon(0 22%,38% 22%,38% 11%,44% 11%,44% 0,56% 0,56% 11%,62% 11%,62% 22%,100% 22%,100% 78%,62% 78%,62% 89%,56% 89%,56% 100%,44% 100%,44% 89%,38% 89%,38% 78%,0 78%)}
-.drawing-piece.piece-2{clip-path:polygon(0 22%,38% 22%,38% 11%,44% 11%,44% 0,56% 0,56% 11%,62% 11%,62% 22%,100% 22%,100% 100%,0 100%)}
-.jigsaw-bank{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:10px}.jigsaw-bank button{display:flex;flex-direction:column;justify-content:center;gap:7px;min-width:0;max-width:none;padding:10px;background:#e8d9b9;color:#302b23}.jigsaw-bank button small{color:#5d513d;font-size:11px}.jigsaw-bank button.placed{opacity:.56}.jigsaw-board{display:grid;grid-template-columns:1fr;gap:8px;margin:14px 0}.jigsaw-slot{display:grid;grid-template-columns:minmax(120px,.7fr) minmax(0,1.3fr);align-items:center;gap:10px;min-width:0;min-height:62px;padding:8px 12px;text-align:left}.jigsaw-slot small{font-size:12px}.jigsaw-slot strong{font:13px Arial,sans-serif;color:#c6cbbb}.jigsaw-slot .drawing-piece{height:clamp(42px,7vh,62px)}
+.drawing-piece{display:block;width:clamp(70px,12vw,140px);aspect-ratio:1448 / 3258;margin:auto;background-image:url('/assets/inspection/brain-pencil-v1.png');background-size:300% 100%;background-repeat:no-repeat}
+.evidence-bank .piece-dragging,.evidence-slot.piece-dragging{opacity:0}
+.evidence-slot[draggable=true]{cursor:grab}
 

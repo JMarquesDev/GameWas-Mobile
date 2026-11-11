@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { CanvasTexture, Shape, ShapeGeometry, SRGBColorSpace, TextureLoader } from 'three';
 import { useLoader } from '@react-three/fiber';
 import type { ObjectId } from '@was/game-content';
+import { EssayModel } from '../pages/ModelPrototypePreview';
 
 function drawTexture(kind: string, illustration?: HTMLImageElement): CanvasTexture {
   const canvas = document.createElement('canvas'); canvas.width = kind.startsWith('brain') ? 768 : 1024; canvas.height = kind.startsWith('brain') ? 1280 : 1024;
@@ -60,7 +61,8 @@ function Surface({ kind, back = false, width = 1.6, height = 1.8, z = 0.04, roun
     {kind.startsWith('brain') ? <meshBasicMaterial map={texture} toneMapped={false}/> : <meshStandardMaterial map={texture} roughness={0.92}/>}
   </mesh>;
 }
-export function ObjectModel({ id }: { id: ObjectId }) {
+export function ObjectModel({ id }: { id: ObjectId | 'trabalho-infantil' }) {
+  if (id === 'trabalho-infantil') return <EssayModel/>;
   if (id === 'relogio') return <Watch/>;
   if (id === 'desenho') return <BrainPage/>;
   return <Polaroid/>;
