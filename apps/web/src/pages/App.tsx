@@ -1,6 +1,8 @@
+import { EndingSequence } from './EndingSequence';
 import { IntroVideo } from './IntroVideo';
 import { MusicPlayer } from './MusicPlayer';
 import { PuzzleSequence, puzzlesComplete } from '../puzzles/PuzzleSequence';
+import { ClockPuzzle } from '../puzzles/ClockPuzzle';
 import { FieldFinale } from './FieldFinale';
 import { DrowsinessEvent } from './DrowsinessEvent';
 import { lazy, Suspense, useEffect, useState } from 'react';
@@ -23,10 +25,11 @@ import { MemorySequence } from './MemorySequence';
 import { FlashbackSequence } from './FlashbackSequence';
 import { PhaseJournal } from './PhaseJournal';
 import { gameAudio } from '../game/audio';
+import './diary-hint.css';
 import { Joystick } from './Joystick';
 const tasks: Record<string, string> = {
   'infancia-sala': 'Descubra o que Oliver queria ser quando criança.',
-  'cenario-02': 'No laboratório da faculdade, recupere as mensagens do celular e examine a prova.',
+  'cenario-02': 'No laboratório da faculdade, leia o diário, recupere as mensagens e ajuste o relógio.',
   'cenario-03': 'Reconheça vestígios da rotina de Oliver e Zoe na sala.',
   'cenario-04': 'Compare as fotografias e identifique onde foram tiradas.',
   'cenario-05': 'Relacione os bilhetes da cozinha às lembranças para ouvir a gravação.',
@@ -38,6 +41,7 @@ export function App() {
   const [completed, setCompleted] = useState(() => { try { return localStorage.getItem('was:completed:v1') === 'true'; } catch { return false; } });
   function completeGame() { if (!admin) { setCompleted(true); try { localStorage.setItem('was:completed:v1', 'true'); } catch { /* Session remains usable. */ } } setEndingOpen(false); menu(); }
   const [puzzleScene, setPuzzleScene] = useState<string | null>(null);
+  const [puzzleReplay, setPuzzleReplay] = useState(false);
   const [objectiveExpanded, setObjectiveExpanded] = useState(true);
   const [sleepActive, setSleepActive] = useState(false);
   const [run, setRun] = useState(0);
@@ -47,7 +51,7 @@ export function App() {
   const [sceneKey, setSceneKey] = useState('infancia');
   const [journalOpen, setJournalOpen] = useState(false);
   const [endingOpen, setEndingOpen] = useState(false);
-  const [endingChoice, setEndingChoice] = useState<'question' | 'remember' | 'release'>('question');
+  const [endingChoice, setEndingChoice] = useState<'question' | 'remember' | 'release' | 'credits'>('question');
   const [challengeOpen, setChallengeOpen] = useState(false);
   const [schoolPhoneOpen, setSchoolPhoneOpen] = useState(false);
   const [schoolNotebookOpen, setSchoolNotebookOpen] = useState(false);
@@ -57,6 +61,8 @@ export function App() {
   const [schoolPassword, setSchoolPassword] = useState('');
   const [schoolPasswordError, setSchoolPasswordError] = useState('');
   const [schoolChoiceOpen, setSchoolChoiceOpen] = useState(false);
+  const [clockMode, setClockMode] = useState<'diary' | 'clock' | null>(null);
+  const [friendChoiceOpen, setFriendChoiceOpen] = useState(false);
   const [hospitalOrder, setHospitalOrder] = useState(['', '', '']);
   const [pauseOpen, setPauseOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
@@ -73,12 +79,17 @@ export function App() {
   const sceneIndex = backgrounds.findIndex(background => background.key === sceneKey);
   const background = backgrounds[sceneIndex] ?? backgrounds[0];
   useEffect(() => { setObjectiveExpanded(true); }, [sceneKey]);
-  useEffect(() => { setObjectiveExpanded(true); }, [sceneKey]);
-  const blocked = gameIntro || !!puzzleScene || pauseOpen || journalOpen || memoryOpen || endingOpen || challengeOpen || schoolPhoneOpen || schoolNotebookOpen || schoolWorkOpen || chairMarkOpen || classroomCubbiesOpen || schoolChoiceOpen || !!flashbackKind || !!transition || !!state.inspecting;
+  useEffect(() => {
+    if (sceneKey === 'cenario-02' && started && !admin && state.progress.choices['puzzle:cenario-02:relogio'] !== 'solved') {
+      state.notify('Há um diário no canto do laboratório. Parte da escrita está desfocada; investigue outros objetos para recuperar as anotações.');
+    }
+  }, [sceneKey, started, admin]);
+  const blocked = gameIntro || !!puzzleScene || pauseOpen || journalOpen || memoryOpen || endingOpen || challengeOpen || schoolPhoneOpen || schoolNotebookOpen || schoolWorkOpen || chairMarkOpen || classroomCubbiesOpen || schoolChoiceOpen || friendChoiceOpen || !!clockMode || !!flashbackKind || !!transition || !!state.inspecting;
   useEffect(() => { useGameStore.getState().setPaused(!started || blocked || sleepActive); }, [started, blocked, sleepActive]);
   useEffect(() => {
     const doorReached = () => {
-      if (!useGameStore.getState().progress.memoryRecovered) return;
+      const progress = useGameStore.getState().progress;
+      if (!progress.memoryRecovered || !puzzlesComplete('infancia', progress.choices)) return;
       useGameStore.getState().advancePhase(backgrounds[1].phase);
       setTransition(backgrounds[1].key);
     };
@@ -98,6 +109,18 @@ export function App() {
     const openPhone = () => { if (sceneKey === 'cenario-02') setSchoolPhoneOpen(true); };
     window.addEventListener('was:school-phone', openPhone);
     return () => window.removeEventListener('was:school-phone', openPhone);
+  }, [sceneKey]);
+  useEffect(() => {
+    const openDiary = () => {
+      if (sceneKey !== 'cenario-02') return;
+      const store = useGameStore.getState();
+      if (!store.progress.phaseClues['cenario-02']?.includes('diario-experimento')) { store.collectPhaseClue('cenario-02', 'diario-experimento'); gameAudio.cue('clue'); }
+      setClockMode('diary');
+    };
+    const openClock = () => { if (sceneKey === 'cenario-02') setClockMode('clock'); };
+    window.addEventListener('was:clock-diary', openDiary);
+    window.addEventListener('was:clock-puzzle', openClock);
+    return () => { window.removeEventListener('was:clock-diary', openDiary); window.removeEventListener('was:clock-puzzle', openClock); };
   }, [sceneKey]);
   useEffect(() => {
     const openNotebook = () => {
@@ -170,7 +193,7 @@ export function App() {
   }
   function phaseFlashback(key: string): FlashbackKind | undefined {
     if (key === 'infancia-sala') return 'childhood';
-    if (key === 'cenario-02') return 'school';
+    if (key === 'cenario-02') return 'friend';
     if (key === 'cenario-03') return 'relationship';
     if (key === 'cenario-04') return 'photos';
     if (key === 'cenario-06') return 'father';
@@ -187,6 +210,10 @@ export function App() {
     if (objective && !canCompletePhase(state.progress, sceneKey)) { state.notify('Investigue os detalhes deste ambiente antes de avançar.'); return; }
     state.inspect(null); setPauseOpen(false);
     if (!puzzlesComplete(sceneKey, useGameStore.getState().progress.choices)) { setPuzzleScene(sceneKey); return; }
+    if (sceneKey === 'cenario-02') {
+      if (!schoolPhoneUnlocked) { setSchoolPhoneOpen(true); return; }
+      setFriendChoiceOpen(true); return;
+    }
     const memory = phaseFlashback(sceneKey);
     if (memory) { setFlashbackTarget(key); setFlashbackKind(memory); return; }
     if (target.phase === backgrounds[sceneIndex].phase) { state.advancePhase(target.phase); setTransition(key); return; }
@@ -208,7 +235,7 @@ export function App() {
     if (sceneKey !== 'infancia' && !canCompletePhase(state.progress, sceneKey)) { state.notify('Investigue todos os detalhes deste ambiente antes de avançar.'); return; }
     if (sceneKey === 'cenario-02') {
       if (!schoolPhoneUnlocked) { setSchoolPhoneOpen(true); return; }
-      setSchoolChoiceOpen(true); return;
+      setFriendChoiceOpen(true); return;
     }
     if (sceneKey === 'cenario-05') { setChallengeOpen(true); return; }
     if (sceneKey === 'cenario-07') { continueAfterPhase(); return; }
@@ -244,6 +271,12 @@ export function App() {
     else void document.documentElement.requestFullscreen?.().catch(() => state.notify('Tela cheia indisponível neste navegador.'));
   }
   const ready = canRecoverMemory(state.progress) && !state.progress.memoryRecovered;
+  useEffect(() => {
+    if (started && !admin && sceneKey === 'infancia' && ready && !state.session.memoryWatched) {
+      state.notify('As pistas estão reunidas. Toque em Diário para reconstruir a lembrança.');
+    }
+  }, [started, admin, sceneKey, ready, state.session.memoryWatched]);
+  const diaryHint = !admin && sceneKey === 'infancia' && ready && !state.session.memoryWatched;
   const phaseObjective = phaseObjectives.find(item => item.scene === sceneKey);
   const phaseFound = phaseObjective ? state.progress.phaseClues[sceneKey]?.length ?? 0 : 0;
   const phaseReady = !!phaseObjective && canCompletePhase(state.progress, sceneKey);
@@ -252,7 +285,7 @@ export function App() {
   const samePhase = nextScene?.phase === background.phase;
   const actionText = hasPuzzle ? 'Reconstruir as pistas' : 'Continuar a lembrança';
   const objectiveText = sceneKey === 'infancia'
-    ? state.session.memoryWatched ? 'Sair pela porta. Caminhe até ela e clique para continuar.' : ready || state.progress.memoryRecovered ? 'Abra o diário e reconstrua a lembrança.' : 'Investigue os objetos com E e reúna as três pistas no diário.'
+    ? state.session.memoryWatched && puzzlesComplete('infancia', state.progress.choices) ? 'Sair pela porta. Caminhe até ela e toque para continuar.' : ready || state.progress.memoryRecovered ? 'Abra o diário e reconstrua a lembrança.' : 'Investigue os objetos com E e reúna as três pistas no diário.'
     : sceneKey === 'infancia-corredor' ? phaseReady ? 'Entrar na sala de aula. Aproxime-se e toque na porta.' : 'Caminhe da janela até a porta à direita, passando pelo mural. ' + phaseFound + '/3 lembranças.'
     : phaseReady ? hasPuzzle ? 'As pistas estão reunidas. Resolva o puzzle para continuar.' : samePhase ? 'Área explorada. Continue quando estiver pronto.' : 'Conclua a lembrança para continuar.'
     : (tasks[sceneKey] ?? phaseObjective?.thought ?? '') + ' Investigue com toque. ' + phaseFound + '/' + (phaseObjective?.clues.length ?? 0) + ' pistas.' + (phaseObjective && phaseFound === phaseObjective.clues.length - 1 ? ' Falta uma pista; confira os fragmentos no diário.' : '');
@@ -260,11 +293,11 @@ export function App() {
     <MusicPlayer scene={!started ? 'menu' : flashbackKind || memoryOpen || endingOpen ? 'flashbacks_final' : sceneKey} suspended={gameIntro} />
     {!started ? <MainMenu completed={completed} slots={state.slots} onStart={slot => enter(false, true, slot)} onContinue={slot => enter(false, false, slot)} onAdmin={scene => enter(true, false, undefined, scene)}/> :
       <section className="game-shell" aria-label="Exploração do WAS">
-        {isField ? <FieldFinale paused={blocked} onPause={() => { setTab('main'); setPauseOpen(true); }} onFinish={() => { if (puzzlesComplete('cenario-08', useGameStore.getState().progress.choices)) setFlashbackKind('field'); else setPuzzleScene('cenario-08'); }}/> : <><Suspense fallback={<div className="scene-loading" role="status">Preparando cenário…</div>}><Game key={run} sceneKey={sceneKey}/></Suspense>
+        {isField ? <FieldFinale paused={blocked} onPause={() => { setTab('main'); setPauseOpen(true); }} onCredits={() => { setEndingChoice('credits'); setEndingOpen(true); }} onFinish={() => { if (puzzlesComplete('cenario-08', useGameStore.getState().progress.choices)) setFlashbackKind('field'); else setPuzzleScene('cenario-08'); }}/> : <><Suspense fallback={<div className="scene-loading" role="status">Preparando cenário…</div>}><Game key={run} sceneKey={sceneKey}/></Suspense>
         {!['infancia', 'cenario-05', 'cenario-06'].includes(sceneKey) && <div className="game-vignette" aria-hidden="true"/>}
         <header className="game-hud">
           <div className="hud-location"><span className="eyebrow">{admin ? 'ADMIN · EXPLORAÇÃO' : `FASE ${background.phase + 1} · ${phaseObjective?.title ?? 'LEMBRANÇA'}`}</span><h1>{background.title.replace(/^\d+ — /, '')}</h1></div>
-          <nav aria-label="Ações durante o jogo"><button className="hud-button" onClick={openJournal}>Diário {state.unread > 0 && <b className="unread-count" aria-label={`${state.unread} pistas novas`}>{state.unread}</b>}</button><button className="hud-button" onClick={() => { setTab('main'); setPauseOpen(true); }}>Pausa</button></nav>
+          <nav aria-label="Ações durante o jogo"><button className={`hud-button ${diaryHint ? 'diary-ready' : ''}`} onClick={openJournal} aria-label={diaryHint ? 'Diário: pistas reunidas, toque para abrir' : 'Abrir diário'}>Diário {state.unread > 0 && <b className="unread-count" aria-label={`${state.unread} pistas novas`}>{state.unread}</b>}{diaryHint && !journalOpen && <span className="diary-ready-hint" aria-hidden="true">Toque para abrir</span>}</button><button className="hud-button" onClick={() => { setTab('main'); setPauseOpen(true); }}>Pausa</button></nav>
         </header>
         <div className="hud-bottom">
           <section className={`objective${objectiveExpanded ? ' objective-expanded' : ''}`} aria-label="Objetivo atual">
@@ -274,7 +307,7 @@ export function App() {
             <div className="objective-details">
               <p>{objectiveText}</p>
               {!admin && phaseReady && sceneKey !== 'infancia-corredor' && <button className="objective-action" onClick={advanceCurrentPhase}>{actionText}</button>}
-              {sceneKey === 'infancia' && (ready || (state.progress.memoryRecovered && !state.session.memoryWatched)) && <button className="objective-action" onClick={openJournal}>Abrir diário</button>}
+              {sceneKey === 'infancia' && (ready || (state.progress.memoryRecovered && (!state.session.memoryWatched || !puzzlesComplete('infancia', state.progress.choices)))) && <button className="objective-action" onClick={openJournal}>Abrir diário</button>}
             </div>
           </section>
         </div>
@@ -290,13 +323,14 @@ export function App() {
       
       {tab !== 'main' && <button className="text-button" onClick={() => setTab('main')}>← Voltar à pausa</button>}
     </Modal>
-    {puzzleScene && <PuzzleSequence scene={puzzleScene} onClose={() => setPuzzleScene(null)} onFinish={() => { const solvedScene = puzzleScene; setPuzzleScene(null); if (solvedScene === 'infancia') setMemoryOpen(true); else if (solvedScene === 'cenario-08') setFlashbackKind('field'); else advanceCurrentPhase(); }}/>}
+    {puzzleScene && <PuzzleSequence scene={puzzleScene} replay={puzzleReplay} onClose={() => { setPuzzleScene(null); setPuzzleReplay(false); }} onFinish={() => { const solvedScene = puzzleScene; setPuzzleScene(null); setPuzzleReplay(false); if (solvedScene === 'infancia') setMemoryOpen(true); else if (solvedScene === 'cenario-08') setFlashbackKind('field'); else advanceCurrentPhase(); }}/>}
+    {clockMode && <ClockPuzzle mode={clockMode} onClose={() => setClockMode(null)}/>}
     <InspectionDialog/>
     <SchoolWorkDialog open={schoolWorkOpen} onClose={() => setSchoolWorkOpen(false)}/>
     <SchoolNotebookDialog open={schoolNotebookOpen} onClose={() => setSchoolNotebookOpen(false)}/>
     <ChairMarkDialog open={chairMarkOpen} onClose={() => setChairMarkOpen(false)}/>
     <ClassroomCubbiesDialog open={classroomCubbiesOpen} onClose={() => setClassroomCubbiesOpen(false)}/>
-    {sceneKey === 'infancia' ? <MemoryJournal open={journalOpen} onClose={() => setJournalOpen(false)} onMemory={memory}/> : <PhaseJournal scene={sceneKey} open={journalOpen} onClose={() => setJournalOpen(false)}/>}
+    {sceneKey === 'infancia' ? <MemoryJournal open={journalOpen} onClose={() => setJournalOpen(false)} onMemory={memory} onPuzzle={() => { setJournalOpen(false); setPuzzleReplay(true); setPuzzleScene('infancia'); }}/> : <PhaseJournal scene={sceneKey} open={journalOpen} onClose={() => setJournalOpen(false)}/>}
     <Modal open={schoolPhoneOpen} title="Celular de Oliver" onClose={() => setSchoolPhoneOpen(false)} className="journal-dialog">
       <p className="eyebrow">CELULAR ANTIGO · TELA TRINCADA</p><h2>{schoolPhoneUnlocked ? 'Mensagens' : 'Digite a senha'}</h2>
       {!schoolPhoneUnlocked ? <>
@@ -308,6 +342,7 @@ export function App() {
       </> : <><article className="journal-entry"><h3>Zoe</h3><p>“Você está melhor? Não esquece a marmita e o trabalho, tá?”</p></article><article className="journal-entry"><h3>Michael</h3><p>“Pega uma coisa no armário da Zoe antes de ir embora.”</p></article><div className="actions"><button onClick={() => setSchoolPhoneOpen(false)}>Fechar celular</button></div></>}
     </Modal>
     <Modal open={schoolChoiceOpen} title="A pergunta do pai" onClose={() => setSchoolChoiceOpen(false)} className="journal-dialog"><p className="eyebrow">FLASHBACK · REDAÇÃO ESCOLAR</p><h2>“Você quer mesmo ser médico como eu?”</h2><p>Escolha a resposta de Oliver. Ela muda apenas o tom desta lembrança.</p><div className="pause-actions"><button onClick={() => { setSchoolChoiceOpen(false); finishChoiceFlashback('school', 'quero-ser-medico'); }}>“Quero ser médico como você.”</button><button className="secondary" onClick={() => { setSchoolChoiceOpen(false); finishChoiceFlashback('school', 'nao-sei-ainda'); }}>“Eu ainda não sei.”</button></div></Modal>
+    <Modal open={friendChoiceOpen} title="Uma conversa com Michael" onClose={() => setFriendChoiceOpen(false)} className="journal-dialog"><p className="eyebrow">FLASHBACK · LABORATÓRIO DA FACULDADE</p><h2>“Você passou mal na semana passada. O que aconteceu?”</h2><p>Oliver não consegue reconstruir aquele dia. Como responde ao amigo?</p><div className="pause-actions"><button onClick={() => { setFriendChoiceOpen(false); finishChoiceFlashback('friend', 'ignorar'); }}>Mudar de assunto</button><button className="secondary" onClick={() => { setFriendChoiceOpen(false); finishChoiceFlashback('friend', 'fingir-bem'); }}>“Estou bem, foi só cansaço.”</button></div></Modal>
     <Modal open={challengeOpen} title={sceneKey === 'cenario-05' ? 'Gravação no apartamento' : 'Reconstruir a sequência'} onClose={() => setChallengeOpen(false)} className="journal-dialog">
       {sceneKey === 'cenario-05' ? <>
         <p className="eyebrow">NOTEBOOK · GRAVAÇÃO DE CHAMADA</p><h2>Uma conversa com o pai</h2>
@@ -328,9 +363,10 @@ export function App() {
         <button disabled={hospitalOrder.some(item => !item) || new Set(hospitalOrder).size !== 3} onClick={resolveHospitalPuzzle}>Confirmar sequência</button>
       </>}
     </Modal>
-    <Modal open={endingOpen} title={endingChoice === 'question' ? 'Você quer lembrar?' : 'Final'} onClose={() => setEndingOpen(false)} className={`journal-dialog ${endingChoice === 'release' ? 'ending-white' : ''}`}>
-      {endingChoice === 'question' ? <><p className="eyebrow">ÚLTIMA ESCOLHA</p><h2>VOCÊ QUER LEMBRAR?</h2><div className="pause-actions"><button onClick={() => setEndingChoice('remember')}>Sim, quero lembrar</button><button className="secondary" onClick={() => setEndingChoice('release')}>Não quero lembrar</button></div></> : endingChoice === 'remember' ? <><p className="eyebrow">EPÍLOGO</p><h2>Algumas coisas a gente esquece. Outras permanecem com a gente.</h2><p>O vídeo final de Oliver ainda não está incluído nos arquivos do projeto. Quando for adicionado, esta escolha exibirá a sequência da infância até o campo.</p><div className="actions"><button onClick={completeGame}>Ir aos créditos</button><button className="secondary" onClick={() => setEndingOpen(false)}>Voltar ao campo</button></div></> : <div className="ending-white-content"><p>A lembrança se apaga.</p><button className="secondary" onClick={completeGame}>Fim · voltar ao menu</button></div>}
+    <Modal open={endingOpen && endingChoice === 'question'} title="Você quer lembrar?" onClose={() => setEndingOpen(false)} className="journal-dialog">
+      <p className="eyebrow">ÚLTIMA ESCOLHA</p><h2>VOCÊ QUER LEMBRAR?</h2><div className="pause-actions"><button onClick={() => { state.recordChoice('ending', 'remember'); setEndingChoice('remember'); }}>Sim, quero lembrar</button><button className="secondary" onClick={() => { state.recordChoice('ending', 'release'); setEndingChoice('release'); }}>Não quero lembrar</button></div>
     </Modal>
+    {endingOpen && endingChoice !== 'question' && <EndingSequence key={endingChoice} choice={endingChoice} onFinish={completeGame}/>}
     <MemorySequence open={memoryOpen} onFinish={finishMemory} onClose={() => setMemoryOpen(false)}/>
     {flashbackKind && <FlashbackSequence kind={flashbackKind} open={true} onFinish={finishFlashback} branch={state.progress.choices[sceneKey]}/>}
     

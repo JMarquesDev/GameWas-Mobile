@@ -73,7 +73,7 @@ class GameAudio {
     oscillator.start(time);
     oscillator.stop(time + duration);
   }
-  cue(kind: "clue" | "memory" | "open") {
+  cue(kind: "clue" | "memory" | "open" | "error") {
     if (kind === "memory")
       [220, 277.18, 329.63, 440].forEach((frequency, i) =>
         this.tone(frequency, i * 0.22, 1.4, 0.07),
@@ -82,6 +82,7 @@ class GameAudio {
       [523.25, 659.25].forEach((frequency, i) =>
         this.tone(frequency, i * 0.13, 0.55, 0.055),
       );
+    else if (kind === "error") [185, 145].forEach((frequency, i) => this.tone(frequency, i * 0.14, 0.23, 0.06));
     else this.tone(240, 0, 0.16, 0.025);
   }
   step(scene: string, speed: number) {

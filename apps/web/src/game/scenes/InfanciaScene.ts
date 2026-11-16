@@ -67,7 +67,10 @@ export class InfanciaScene extends Phaser.Scene {
     this.doorHint = this.add.text(905, 440 * height / 540, 'Sair pela porta', { fontSize: '13px', color: '#fff4dd', backgroundColor: '#191c1be8', padding: { x: 9, y: 6 } }).setOrigin(.5, 1).setDepth(2000).setResolution(2).setVisible(false);
     this.exitDoor = () => {
       const state = useGameStore.getState();
-      if (!state.session.memoryWatched || !state.progress.memoryRecovered || state.paused || this.leavingRoom) return;
+      if (!state.session.memoryWatched || !state.progress.memoryRecovered || state.progress.choices['puzzle:infancia:desenho'] !== 'solved' || state.paused || this.leavingRoom) {
+        if (state.session.memoryWatched && state.progress.memoryRecovered && state.progress.choices['puzzle:infancia:desenho'] !== 'solved') state.notify('Abra o diário e resolva o desenho antes de sair.');
+        return;
+      }
       const position = this.exploration.position;
       if (Math.hypot(position.x - doorApproach.x, position.y - doorApproach.y) > 80) {
         state.notify('Aproxime-se da porta para sair.');
@@ -93,7 +96,7 @@ export class InfanciaScene extends Phaser.Scene {
     const state = useGameStore.getState();
     const paused = state.paused || !!state.inspecting || document.hidden || !!document.querySelector('dialog[open]');
     this.exploration.update(delta, paused);
-    this.doorHint.setVisible(!paused && state.session.memoryWatched && state.progress.memoryRecovered && !this.leavingRoom);
+    this.doorHint.setVisible(!paused && state.session.memoryWatched && state.progress.memoryRecovered && state.progress.choices['puzzle:infancia:desenho'] === 'solved' && !this.leavingRoom);
     this.doorHint.setText('Sair pela porta · toque');
     const destination = this.exploration.destination;
     this.destinationMarker.setVisible(!paused && !!destination);

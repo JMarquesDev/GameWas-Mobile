@@ -121,6 +121,8 @@ class BackgroundScene extends Phaser.Scene {
     if (key === 'infancia-sala' && target.id === 'nomes-armarios') { window.dispatchEvent(new Event('was:classroom-cubbies')); return; }
     if (key === 'infancia-sala' && target.id === 'trabalho-infantil') { window.dispatchEvent(new Event('was:school-work')); return; }
     if (key === 'cenario-02' && target.id === 'bolsa-caderno') { window.dispatchEvent(new Event('was:school-notebook')); return; }
+    if (key === 'cenario-02' && target.id === 'diario-experimento') { window.dispatchEvent(new Event('was:clock-diary')); return; }
+    if (key === 'cenario-02' && target.id === 'relogio-aula') window.dispatchEvent(new Event('was:clock-puzzle'));
     if (target.id === 'celular-antigo') window.dispatchEvent(new Event('was:school-phone'));
     if (!useGameStore.getState().progress.phaseClues[key]?.includes(target.id)) { useGameStore.getState().collectPhaseClue(key, target.id); useGameStore.getState().notify(`${target.title}: ${target.text}`); gameAudio.cue('clue'); }
     else {

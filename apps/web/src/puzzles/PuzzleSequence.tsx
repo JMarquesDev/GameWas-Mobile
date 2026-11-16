@@ -35,10 +35,12 @@ function Challenge({ puzzle, onSolved }: { puzzle: Puzzle; onSolved: () => void 
  {error && <p role="alert">A ligação ainda não corresponde aos indícios. Releia o material e tente novamente.</p>}
  <button disabled={values.some(v=>v==='') || (puzzle.focus && !sharp)} onClick={()=>{if(values.every((v,i)=>Number(v)===puzzle.answers[i]))onSolved();else setError(true);}}>Confirmar</button></section>;
 }
-export function PuzzleSequence({scene,onClose,onFinish}:{scene:string;onClose:()=>void;onFinish:()=>void}) {
+export function PuzzleSequence({scene,onClose,onFinish,replay=false}:{scene:string;onClose:()=>void;onFinish:()=>void;replay?:boolean}) {
  const state=useGameStore(); const list=puzzles[scene]??[];
- const pending=list.find(p=>state.progress.choices[`puzzle:${scene}:${p.id}`]!=='solved');
- return <Modal open title="Reconstruir pistas" onClose={onClose} className="journal-dialog"><p className="eyebrow">INVESTIGAÇÃO · {list.filter(p=>state.progress.choices[`puzzle:${scene}:${p.id}`]==='solved').length}/{list.length}</p>{pending?<Challenge key={pending.id} puzzle={pending} onSolved={()=>state.recordChoice(`puzzle:${scene}:${pending.id}`,'solved')}/>:<><h2>Conexões reconstruídas</h2><button onClick={onFinish}>Continuar lembrança</button></>}<button className="text-button" onClick={onClose}>Voltar à exploração</button></Modal>;
+ const [replaySolved,setReplaySolved]=useState(false);
+ const pending=replay && !replaySolved ? list[0] : list.find(p=>state.progress.choices[`puzzle:${scene}:${p.id}`]!=='solved');
+ const clockPending = scene === 'cenario-02' && state.progress.choices['puzzle:cenario-02:relogio'] !== 'solved';
+ return <Modal open title="Reconstruir pistas" onClose={onClose} className="journal-dialog"><p className="eyebrow">INVESTIGAÇÃO · {list.filter(p=>state.progress.choices[`puzzle:${scene}:${p.id}`]==='solved').length + (scene === 'cenario-02' && !clockPending ? 1 : 0)}/{list.length + (scene === 'cenario-02' ? 1 : 0)}</p>{pending?<Challenge key={pending.id} puzzle={pending} onSolved={()=>replay ? setReplaySolved(true) : state.recordChoice(`puzzle:${scene}:${pending.id}`,'solved')}/>:clockPending?<><h2>Falta acertar o relógio</h2><p>Releia o diário no canto da sala, reúna as pistas e ajuste os ponteiros do relógio.</p><button onClick={onClose}>Voltar ao laboratório</button></>:<><h2>Conexões reconstruídas</h2><button onClick={onFinish}>Continuar lembrança</button></>}<button className="text-button" onClick={onClose}>Voltar à exploração</button></Modal>;
 }
-export function puzzlesComplete(scene:string,choices:Record<string,string>){return (puzzles[scene]??[]).every(p=>choices[`puzzle:${scene}:${p.id}`]==='solved');}
+export function puzzlesComplete(scene:string,choices:Record<string,string>){return (puzzles[scene]??[]).every(p=>choices[`puzzle:${scene}:${p.id}`]==='solved') && (scene !== 'cenario-02' || choices['puzzle:cenario-02:relogio']==='solved');}
 

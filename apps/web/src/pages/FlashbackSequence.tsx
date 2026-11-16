@@ -34,7 +34,7 @@ export function FlashbackSequence({ kind, open, onFinish, branch }: { kind: Flas
   const response = kind === 'school'
     ? branch === 'quero-ser-medico' ? 'Quero ser médico como você.' : 'Eu ainda não sei.'
     : kind === 'friend'
-      ? branch === 'ignorar' ? 'Oliver muda de assunto e tenta seguir estudando.' : 'Oliver diz que está tudo bem, embora não consiga lembrar.'
+      ? branch === 'ignorar' ? 'A prova ficou na bancada? Preciso terminar antes de ir embora.' : 'Estou bem, Michael. Deve ter sido só cansaço.'
       : kind === 'relationship'
         ? branch === 'open' ? 'Dessa vez, ele escolheu dividir o que estava sentindo.' : 'Ele ainda não conseguiu falar, mas decidiu que tentaria de novo.'
         : undefined;
